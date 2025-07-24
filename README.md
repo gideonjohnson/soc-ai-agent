@@ -13,12 +13,12 @@ A lightweight AI-assisted log parser and triage tool for cybersecurity monitorin
 - No Wazuh/Splunk/Elastic integration yet
 - No syslog/Filebeat/API ingestion
 
-## 🛠 Coming Soon
+## Coming Soon
 - Real-time file monitoring
 - SIEM (Wazuh) API support
 - Lightweight Flask API for log ingestion
 
-## 🚀 How to Run
+## How to Run
 
 ```bash
 python src/agent/log_parser.py
