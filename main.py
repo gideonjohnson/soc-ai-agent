@@ -1,14 +1,19 @@
 import json
-import openai
-from openai import OpenAI
+import os
 from rich import print
 
-# === Step 1: Load config ===
-with open("config.json", "r") as cfg:
-    config = json.load(cfg)
+# === Step 1: Load config (safe) ===
+config_file = "config.json"
 
-client = OpenAI(api_key=config["openai_api_key"])
-gpt_model = config.get("gpt_model", "gpt-3.5-turbo")
+if os.path.exists(config_file):
+    with open(config_file, "r") as cfg:
+        config = json.load(cfg)
+else:
+    print("[bold yellow]⚠️ config.json not found! Using fallback settings.[/bold yellow]")
+    config = {
+        "openai_api_key": "dummy_key",
+        "gpt_model": "gpt-3.5-turbo"
+    }
 
 # === Step 2: Load logs ===
 log_file_path = "logs/test_logs.json"
