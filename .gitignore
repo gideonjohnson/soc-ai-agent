@@ -1,2 +1,10 @@
+# Ignore config and secrets
+config.json
+*.env
+
+# Ignore Python cache and virtual environments
+__pycache__/
+*.pyc
+venv/
 venv/ 
 "config.json" 
