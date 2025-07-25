@@ -1,60 +1,44 @@
-import json
 import openai
-from openai import OpenAI
-from rich import print
-from rich.table import Table
+import os
 
-# === Step 1: Load config ===
-with open("config.json", "r") as cfg:
-    config = json.load(cfg)
+def analyze_log(log_entry):
+    openai.api_key = os.getenv("OPENAI_API_KEY")  # Make sure it's in your .env and loaded
 
-client = OpenAI(api_key=config["openai_api_key"])
-gpt_model = config.get("gpt_model", "gpt-3.5-turbo")
+    prompt = f"""
+You are a SOC Level 1 Analyst AI. Analyze this security log:
 
-# === Step 2: Load logs ===
-log_file_path = "logs/test_logs.json"
-try:
-    with open(log_file_path, "r") as file:
-        logs = json.load(file)
-except FileNotFoundError:
-    print("[bold red]Log file not found. Check the path.[/bold red]")
-    exit()
+"{log_entry}"
 
-# === Step 3: Load prompt template ===
-with open("prompts/triage_prompt.txt", "r") as file:
-    base_prompt = file.read()
+Your job:
+1. Determine threat level (low, medium, high)
+2. Recommend an action
+3. Map it to a MITRE ATT&CK tactic and technique
 
-# === Step 4: Define function to send to GPT ===
-def analyze_log_with_gpt(log_entry):
-    prompt = base_prompt.replace("{{log_entry}}", json.dumps(log_entry, indent=2))
-    
+Respond in this JSON format:
+{{
+  "threat_level": "...",
+  "recommended_action": "...",
+  "mitre_tactic": "...",
+  "mitre_technique": "...",
+  "mitre_technique_id": "..."
+}}
+"""
+
     try:
-        response = client.chat.completions.create(
-            model=gpt_model,
-            messages=[
-                {"role": "system", "content": "You are a SOC Level 1 Analyst AI assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.2
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=500
         )
-        result_text = response.choices[0].message.content.strip()
-        return json.loads(result_text)
-    
+        message = response['choices'][0]['message']['content']
+        return eval(message)  # Or better: use json.loads(message) if formatted correctly
     except Exception as e:
-        print(f"[bold red]❌ GPT Error:[/bold red] {e}")
-        return None
-
-
-
-# === Step 5: Process each log ===
-for i, log in enumerate(logs, start=1):
-    print(f"\n[bold blue]🔍 Analyzing Log #{i}[/bold blue]")
-    print("[bold yellow]Log Summary:[/bold yellow]", log.get("message", "No message field."))
-
-    result = analyze_log_with_gpt(log)
-
-    if result:
-        print("[bold green]✅ GPT Decision:[/bold green]")
-        print(json.dumps(result, indent=2))
-    else:
-        print("[bold red]❌ Failed to analyze log.[/bold red]")
+        print(f"❌ GPT Error: {e}")
+        return {
+            "threat_level": "unknown",
+            "recommended_action": "Review manually",
+            "mitre_tactic": "unknown",
+            "mitre_technique": "unknown",
+            "mitre_technique_id": "N/A"
+        }
